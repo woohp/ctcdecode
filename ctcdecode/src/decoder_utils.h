@@ -1,5 +1,4 @@
-#ifndef DECODER_UTILS_H_
-#define DECODER_UTILS_H_
+#pragma once
 
 #include <unordered_map>
 #include <utility>
@@ -94,4 +93,3 @@ bool add_word_to_dictionary(
     bool add_space,
     int SPACE_ID,
     fst::StdVectorFst* dictionary);
-#endif  // DECODER_UTILS_H

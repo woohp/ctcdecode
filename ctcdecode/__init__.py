@@ -5,9 +5,6 @@ from ._ext import ctc_decode
 class CTCBeamDecoder:
     def __init__(
         self,
-        labels,
-        alpha=0,
-        beta=0,
         cutoff_top_n=40,
         cutoff_prob=1.0,
         beam_width=100,
@@ -16,13 +13,11 @@ class CTCBeamDecoder:
         log_probs_input=False
     ):
         self.cutoff_top_n = cutoff_top_n
-        self._beam_width = beam_width
-        self._num_processes = num_processes
-        self._labels = labels
-        self._num_labels = len(labels)
-        self._blank_id = blank_id
-        self._log_probs = 1 if log_probs_input else 0
-        self._cutoff_prob = cutoff_prob
+        self.beam_width = beam_width
+        self.num_processes = num_processes
+        self.blank_id = blank_id
+        self.log_probs_input = log_probs_input
+        self.cutoff_prob = cutoff_prob
 
     def decode(self, probs, seq_lens=None):
         # We expect batch x seq x label_size
@@ -34,6 +29,6 @@ class CTCBeamDecoder:
             seq_lens = seq_lens.cpu().int()
 
         return ctc_decode.beam_decode(
-            probs, seq_lens, self._labels, self._num_labels, self._beam_width, self._num_processes, self._cutoff_prob,
-            self.cutoff_top_n, self._blank_id, self._log_probs
+            probs, seq_lens, self.beam_width, self.num_processes, self.cutoff_prob,
+            self.cutoff_top_n, self.blank_id, self.log_probs_input
         )

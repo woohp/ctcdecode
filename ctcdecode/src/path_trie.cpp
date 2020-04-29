@@ -7,6 +7,7 @@
 #include <vector>
 
 #include "decoder_utils.h"
+using namespace std;
 
 PathTrie::PathTrie()
 {
@@ -110,7 +111,7 @@ PathTrie* PathTrie::get_path_trie(int new_char, int new_timestep, float cur_log_
                     new_path->dictionary_state_ = matcher_->Value().nextstate;
                 }
 
-                children_.push_back(std::make_pair(new_char, new_path));
+                children_.push_back(make_pair(new_char, new_path));
                 return new_path;
             }
         }
@@ -121,23 +122,23 @@ PathTrie* PathTrie::get_path_trie(int new_char, int new_timestep, float cur_log_
             new_path->timestep = new_timestep;
             new_path->parent = this;
             new_path->log_prob_c = cur_log_prob_c;
-            children_.push_back(std::make_pair(new_char, new_path));
+            children_.push_back(make_pair(new_char, new_path));
             return new_path;
         }
     }
 }
 
-PathTrie* PathTrie::get_path_vec(std::vector<int>& output, std::vector<int>& timesteps)
+PathTrie* PathTrie::get_path_vec(vector<int>& output, vector<int>& timesteps)
 {
     return get_path_vec(output, timesteps, ROOT_);
 }
 
-PathTrie* PathTrie::get_path_vec(std::vector<int>& output, std::vector<int>& timesteps, int stop, size_t max_steps)
+PathTrie* PathTrie::get_path_vec(vector<int>& output, vector<int>& timesteps, int stop, size_t max_steps)
 {
     if (character == stop || character == ROOT_ || output.size() == max_steps)
     {
-        std::reverse(output.begin(), output.end());
-        std::reverse(timesteps.begin(), timesteps.end());
+        reverse(output.begin(), output.end());
+        reverse(timesteps.begin(), timesteps.end());
         return this;
     }
     else
@@ -148,7 +149,7 @@ PathTrie* PathTrie::get_path_vec(std::vector<int>& output, std::vector<int>& tim
     }
 }
 
-void PathTrie::iterate_to_vec(std::vector<PathTrie*>& output)
+void PathTrie::iterate_to_vec(vector<PathTrie*>& output)
 {
     if (exists_)
     {
@@ -200,7 +201,7 @@ void PathTrie::set_dictionary(fst::StdVectorFst* dictionary)
 }
 
 using FSTMATCH = fst::SortedMatcher<fst::StdVectorFst>;
-void PathTrie::set_matcher(std::shared_ptr<FSTMATCH> matcher)
+void PathTrie::set_matcher(shared_ptr<FSTMATCH> matcher)
 {
     matcher_ = matcher;
 }

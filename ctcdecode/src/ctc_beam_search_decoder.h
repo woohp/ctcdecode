@@ -1,5 +1,4 @@
-#ifndef CTC_BEAM_SEARCH_DECODER_H_
-#define CTC_BEAM_SEARCH_DECODER_H_
+#pragma once
 
 #include <string>
 #include <utility>
@@ -13,7 +12,6 @@
  * Parameters:
  *     probs_seq: 2-D vector that each element is a vector of probabilities
  *               over vocabulary of one time step.
- *     vocabulary: A vector of vocabulary.
  *     beam_size: The width of beam search.
  *     cutoff_prob: Cutoff probability for pruning.
  *     cutoff_top_n: Cutoff number for pruning.
@@ -24,8 +22,7 @@
 
 std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
     const std::vector<std::vector<double>>& probs_seq,
-    const std::vector<std::string>& vocabulary,
-    size_t beam_size,
+    int beam_size,
     double cutoff_prob = 1.0,
     size_t cutoff_top_n = 40,
     size_t blank_id = 0,
@@ -36,7 +33,6 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
  * Parameters:
  *     probs_seq: 3-D vector that each element is a 2-D vector that can be used
  *                by ctc_beam_search_decoder().
- *     vocabulary: A vector of vocabulary.
  *     beam_size: The width of beam search.
  *     num_processes: Number of threads for beam search.
  *     cutoff_prob: Cutoff probability for pruning.
@@ -47,8 +43,7 @@ std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
 */
 std::vector<std::vector<std::pair<double, Output>>> ctc_beam_search_decoder_batch(
     const std::vector<std::vector<std::vector<double>>>& probs_split,
-    const std::vector<std::string>& vocabulary,
-    size_t beam_size,
+    int beam_size,
     size_t num_processes,
     double cutoff_prob = 1.0,
     size_t cutoff_top_n = 40,
@@ -58,13 +53,11 @@ std::vector<std::vector<std::pair<double, Output>>> ctc_beam_search_decoder_batc
 class DecoderState
 {
     int abs_time_step;
-    int space_id;
     size_t beam_size;
     double cutoff_prob;
     size_t cutoff_top_n;
     size_t blank_id;
     int log_input;
-    std::vector<std::string> vocabulary;
 
     std::vector<PathTrie*> prefixes;
     PathTrie root;
@@ -73,13 +66,11 @@ public:
     /* Initialize CTC beam search decoder for streaming
      *
      * Parameters:
-     *     vocabulary: A vector of vocabulary.
      *     beam_size: The width of beam search.
      *     cutoff_prob: Cutoff probability for pruning.
      *     cutoff_top_n: Cutoff number for pruning.
      */
     DecoderState(
-        const std::vector<std::string>& vocabulary,
         size_t beam_size,
         double cutoff_prob,
         size_t cutoff_top_n,
@@ -103,5 +94,3 @@ public:
      */
     std::vector<std::pair<double, Output>> decode() const;
 };
-
-#endif  // CTC_BEAM_SEARCH_DECODER_H_

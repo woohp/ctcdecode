@@ -12,51 +12,25 @@
 #include "output.h"
 #include "path_trie.h"
 #include "thread_pool.h"
+using namespace std;
 
-DecoderState::DecoderState(
-    const std::vector<std::string>& vocabulary,
-    size_t beam_size,
-    double cutoff_prob,
-    size_t cutoff_top_n,
-    size_t blank_id,
-    int log_input)
+DecoderState::DecoderState(size_t beam_size, double cutoff_prob, size_t cutoff_top_n, size_t blank_id, int log_input)
     : abs_time_step(0)
     , beam_size(beam_size)
     , cutoff_prob(cutoff_prob)
     , cutoff_top_n(cutoff_top_n)
     , blank_id(blank_id)
     , log_input(log_input)
-    , vocabulary(vocabulary)
 {
-    // assign space id
-    auto it = std::find(vocabulary.begin(), vocabulary.end(), " ");
-    // if no space in vocabulary
-    if (it == vocabulary.end())
-    {
-        space_id = -2;
-    }
-    else
-    {
-        space_id = std::distance(vocabulary.begin(), it);
-    }
-
     // init prefixes' root
     root.score = root.log_prob_b_prev = 0.0;
     prefixes.push_back(&root);
 }
 
-void DecoderState::next(const std::vector<std::vector<double>>& probs_seq)
+void DecoderState::next(const vector<vector<double>>& probs_seq)
 {
     // dimension check
     size_t num_time_steps = probs_seq.size();
-    for (size_t i = 0; i < num_time_steps; ++i)
-    {
-        VALID_CHECK_EQ(
-            probs_seq[i].size(),
-            vocabulary.size(),
-            "The shape of probs_seq does not match with "
-            "the shape of the vocabulary");
-    }
 
     // prefix search over time
     for (size_t time_step = 0; time_step < num_time_steps; ++time_step, ++abs_time_step)
@@ -66,8 +40,7 @@ void DecoderState::next(const std::vector<std::vector<double>>& probs_seq)
         float min_cutoff = -NUM_FLT_INF;
         bool full_beam = false;
 
-        std::vector<std::pair<size_t, float>> log_prob_idx
-            = get_pruned_log_probs(prob, cutoff_prob, cutoff_top_n, log_input);
+        vector<pair<size_t, float>> log_prob_idx = get_pruned_log_probs(prob, cutoff_prob, cutoff_top_n, log_input);
         // loop over chars
         for (size_t index = 0; index < log_prob_idx.size(); index++)
         {
@@ -121,7 +94,7 @@ void DecoderState::next(const std::vector<std::vector<double>>& probs_seq)
         // only preserve top beam_size prefixes
         if (prefixes.size() >= beam_size)
         {
-            std::nth_element(prefixes.begin(), prefixes.begin() + beam_size, prefixes.end(), prefix_compare);
+            nth_element(prefixes.begin(), prefixes.begin() + beam_size, prefixes.end(), prefix_compare);
             for (size_t i = beam_size; i < prefixes.size(); ++i)
             {
                 prefixes[i]->remove();
@@ -132,21 +105,21 @@ void DecoderState::next(const std::vector<std::vector<double>>& probs_seq)
     }  // end of loop over time
 }
 
-std::vector<std::pair<double, Output>> DecoderState::decode() const
+vector<pair<double, Output>> DecoderState::decode() const
 {
-    std::vector<PathTrie*> prefixes_copy = prefixes;
-    std::unordered_map<const PathTrie*, float> scores;
+    vector<PathTrie*> prefixes_copy = prefixes;
+    unordered_map<const PathTrie*, float> scores;
     for (PathTrie* prefix : prefixes_copy)
     {
         scores[prefix] = prefix->score;
     }
 
-    using namespace std::placeholders;
-    size_t num_prefixes = std::min(prefixes_copy.size(), beam_size);
-    std::sort(
+    using namespace placeholders;
+    size_t num_prefixes = min(prefixes_copy.size(), beam_size);
+    sort(
         prefixes_copy.begin(),
         prefixes_copy.begin() + num_prefixes,
-        std::bind(prefix_compare_external_scores, _1, _2, scores));
+        bind(prefix_compare_external_scores, _1, _2, scores));
 
     // compute aproximate ctc score as the return score, without affecting the
     // return order of decoding result. To delete when decoder gets stable.
@@ -159,23 +132,21 @@ std::vector<std::pair<double, Output>> DecoderState::decode() const
     return get_beam_search_result(prefixes_copy, beam_size);
 }
 
-std::vector<std::pair<double, Output>> ctc_beam_search_decoder(
-    const std::vector<std::vector<double>>& probs_seq,
-    const std::vector<std::string>& vocabulary,
+vector<pair<double, Output>> ctc_beam_search_decoder(
+    const vector<vector<double>>& probs_seq,
     size_t beam_size,
     double cutoff_prob,
     size_t cutoff_top_n,
     size_t blank_id,
     int log_input)
 {
-    DecoderState state(vocabulary, beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);
+    DecoderState state(beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);
     state.next(probs_seq);
     return state.decode();
 }
 
-std::vector<std::vector<std::pair<double, Output>>> ctc_beam_search_decoder_batch(
-    const std::vector<std::vector<std::vector<double>>>& probs_split,
-    const std::vector<std::string>& vocabulary,
+vector<vector<pair<double, Output>>> ctc_beam_search_decoder_batch(
+    const vector<vector<vector<double>>>& probs_split,
     size_t beam_size,
     size_t num_processes,
     double cutoff_prob,
@@ -190,11 +161,10 @@ std::vector<std::vector<std::pair<double, Output>>> ctc_beam_search_decoder_batc
     size_t batch_size = probs_split.size();
 
     // enqueue the tasks of decoding
-    std::vector<std::vector<std::pair<double, Output>>> outputs(batch_size);
+    vector<vector<pair<double, Output>>> outputs(batch_size);
 
     pool.parallel_for(0, batch_size, [&](size_t i, size_t) {
-        outputs[i] = ctc_beam_search_decoder(
-            probs_split[i], vocabulary, beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);
+        outputs[i] = ctc_beam_search_decoder(probs_split[i], beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);
     });
 
     return outputs;

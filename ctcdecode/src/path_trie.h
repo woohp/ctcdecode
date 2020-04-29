@@ -1,5 +1,4 @@
-#ifndef PATH_TRIE_H
-#define PATH_TRIE_H
+#pragma once
 
 #include <algorithm>
 #include <limits>
@@ -71,5 +70,3 @@ private:
     // true if finding ars in FST
     std::shared_ptr<fst::SortedMatcher<fst::StdVectorFst>> matcher_;
 };
-
-#endif  // PATH_TRIE_H

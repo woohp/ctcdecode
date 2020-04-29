@@ -12,9 +12,7 @@ using namespace std;
 vector<at::Tensor> beam_decode(
     at::Tensor th_probs,
     at::Tensor th_seq_lens,
-    vector<string> new_vocab,
-    int vocab_size,
-    size_t beam_size,
+    int beam_size,
     size_t num_processes,
     double cutoff_prob,
     size_t cutoff_top_n,
@@ -32,7 +30,7 @@ vector<at::Tensor> beam_decode(
     for (int b = 0; b < batch_size; ++b)
     {
         // avoid a crash by ensuring that an erroneous seq_len doesn't have us try to access memory we shouldn't
-        int seq_len = std::min((int)seq_len_a[b], (int)max_time);
+        int seq_len = std::min<int>(seq_len_a[b], max_time);
         vector<vector<double>> temp(seq_len, vector<double>(num_classes));
         for (int t = 0; t < seq_len; ++t)
         {
@@ -45,39 +43,36 @@ vector<at::Tensor> beam_decode(
         inputs.push_back(temp);
     }
 
-    vector<vector<std::pair<double, Output>>> batch_results = ctc_beam_search_decoder_batch(
-        inputs, new_vocab, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, log_input);
+    vector<vector<pair<double, Output>>> batch_results = ctc_beam_search_decoder_batch(
+        inputs, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, log_input);
 
     auto output = at::empty({ batch_size, beam_size, max_time }, at::kInt);
-    auto timesteps = at::empty({ batch_size, beam_size, max_time }, at::kInt);
+    // auto timesteps = at::empty({ batch_size, beam_size, max_time }, at::kInt);
     auto scores = at::empty({ batch_size, beam_size }, at::kFloat);
     auto out_length = at::zeros({ batch_size, beam_size }, at::kInt);
 
     auto outputs_a = output.accessor<int, 3>();
-    auto timesteps_a = timesteps.accessor<int, 3>();
+    // auto timesteps_a = timesteps.accessor<int, 3>();
     auto scores_a = scores.accessor<float, 2>();
     auto out_length_a = out_length.accessor<int, 2>();
 
-    for (int b = 0; b < batch_results.size(); ++b)
+    for (size_t b = 0; b < batch_results.size(); ++b)
     {
-        vector<std::pair<double, Output>> results = batch_results[b];
-        for (int p = 0; p < results.size(); ++p)
+        const auto& results = batch_results[b];
+        for (size_t p = 0; p < results.size(); ++p)
         {
-            std::pair<double, Output> n_path_result = results[p];
-            Output output = n_path_result.second;
-            vector<int> output_tokens = output.tokens;
-            vector<int> output_timesteps = output.timesteps;
-            for (int t = 0; t < output_tokens.size(); ++t)
+            auto& [score, output] = results[p];
+            for (size_t t = 0; t < output.tokens.size(); ++t)
             {
-                outputs_a[b][p][t] = output_tokens[t];  // fill output tokens
-                timesteps_a[b][p][t] = output_timesteps[t];
+                outputs_a[b][p][t] = output.tokens[t];  // fill output tokens
+                // timesteps_a[b][p][t] = output.timesteps[t];
             }
-            scores_a[b][p] = n_path_result.first;
-            out_length_a[b][p] = output_tokens.size();
+            scores_a[b][p] = score;
+            out_length_a[b][p] = output.tokens.size();
         }
     }
 
-    return { output, timesteps, scores, out_length };
+    return { output, scores, out_length };
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
