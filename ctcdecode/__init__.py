@@ -3,7 +3,7 @@ from ._ext import ctc_decode
 from typing import List, NamedTuple, Optional, Tuple
 
 
-Candidate = NamedTuple('Candidate', [('value', List[int]), ('score', float)])
+Candidate = NamedTuple('Candidate', [('value', List[int]), ('log_prob', float)])
 
 
 class CTCBeamDecoder:
@@ -51,5 +51,5 @@ class CTCBeamDecoder:
         # convert to named tuples
         outt = []
         for batch_out in out:
-            outt.append([Candidate(*c) for c in batch_out])
+            outt.append([Candidate(value, -score) for value, score in batch_out])
         return outt
