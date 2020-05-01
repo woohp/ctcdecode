@@ -134,7 +134,7 @@ vector<pair<double, Output>> DecoderState::decode() const
 
 vector<pair<double, Output>> ctc_beam_search_decoder(
     const vector<vector<double>>& probs_seq,
-    size_t beam_size,
+    int beam_size,
     double cutoff_prob,
     size_t cutoff_top_n,
     size_t blank_id,
@@ -147,7 +147,7 @@ vector<pair<double, Output>> ctc_beam_search_decoder(
 
 vector<vector<pair<double, Output>>> ctc_beam_search_decoder_batch(
     const vector<vector<vector<double>>>& probs_split,
-    size_t beam_size,
+    int beam_size,
     size_t num_processes,
     double cutoff_prob,
     size_t cutoff_top_n,

@@ -2,6 +2,7 @@
 import unittest
 import torch
 import ctcdecode
+from typing import Sequence
 
 
 class TestDecoders(unittest.TestCase):
@@ -49,32 +50,32 @@ class TestDecoders(unittest.TestCase):
         self.greedy_result = ["ac'bdc", "b'da"]
         self.beam_search_result = ['acdc', "b'a", "a a"]
 
-    def convert_to_string(self, tokens, vocab, seq_len):
-        return ''.join([vocab[x] for x in tokens[0:seq_len]])
+    def convert_to_string(self, tokens: Sequence[int]):
+        return ''.join([self.vocab_list[x] for x in tokens])
 
     def test_beam_search_decoder_1(self):
         probs_seq = torch.FloatTensor([self.probs_seq1])
         decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
                                            blank_id=self.vocab_list.index('_'))
-        beam_result, beam_scores, out_seq_len = decoder.decode(probs_seq)
-        output_str = self.convert_to_string(beam_result[0][0], self.vocab_list, out_seq_len[0][0])
+        results = decoder.decode(probs_seq)
+        output_str = self.convert_to_string(results[0][0][0])
         self.assertEqual(output_str, self.beam_search_result[0])
 
     def test_beam_search_decoder_2(self):
         probs_seq = torch.FloatTensor([self.probs_seq2])
         decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
                                            blank_id=self.vocab_list.index('_'))
-        beam_result, beam_scores, out_seq_len = decoder.decode(probs_seq)
-        output_str = self.convert_to_string(beam_result[0][0], self.vocab_list, out_seq_len[0][0])
+        results = decoder.decode(probs_seq)
+        output_str = self.convert_to_string(results[0][0][0])
         self.assertEqual(output_str, self.beam_search_result[1])
 
     def test_beam_search_decoder_batch(self):
         probs_seq = torch.FloatTensor([self.probs_seq1, self.probs_seq2])
         decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
                                            blank_id=self.vocab_list.index('_'), num_processes=24)
-        beam_results, beam_scores, out_seq_len = decoder.decode(probs_seq)
-        output_str1 = self.convert_to_string(beam_results[0][0], self.vocab_list, out_seq_len[0][0])
-        output_str2 = self.convert_to_string(beam_results[1][0], self.vocab_list, out_seq_len[1][0])
+        results = decoder.decode(probs_seq)
+        output_str1 = self.convert_to_string(results[0][0][0])
+        output_str2 = self.convert_to_string(results[1][0][0])
         self.assertEqual(output_str1, self.beam_search_result[0])
         self.assertEqual(output_str2, self.beam_search_result[1])
 
@@ -83,9 +84,9 @@ class TestDecoders(unittest.TestCase):
         decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
                                            blank_id=self.vocab_list.index('_'), log_probs_input=True,
                                            num_processes=24)
-        beam_results, beam_scores, out_seq_len = decoder.decode(probs_seq)
-        output_str1 = self.convert_to_string(beam_results[0][0], self.vocab_list, out_seq_len[0][0])
-        output_str2 = self.convert_to_string(beam_results[1][0], self.vocab_list, out_seq_len[1][0])
+        results = decoder.decode(probs_seq)
+        output_str1 = self.convert_to_string(results[0][0][0])
+        output_str2 = self.convert_to_string(results[1][0][0])
         self.assertEqual(output_str1, self.beam_search_result[0])
         self.assertEqual(output_str2, self.beam_search_result[1])
 

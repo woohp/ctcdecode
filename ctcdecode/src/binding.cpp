@@ -9,7 +9,7 @@
 
 using namespace std;
 
-vector<at::Tensor> beam_decode(
+vector<vector<pair<vector<int>, float>>> beam_decode(
     at::Tensor th_probs,
     at::Tensor th_seq_lens,
     int beam_size,
@@ -46,33 +46,21 @@ vector<at::Tensor> beam_decode(
     vector<vector<pair<double, Output>>> batch_results = ctc_beam_search_decoder_batch(
         inputs, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, log_input);
 
-    auto output = at::empty({ batch_size, beam_size, max_time }, at::kInt);
-    // auto timesteps = at::empty({ batch_size, beam_size, max_time }, at::kInt);
-    auto scores = at::empty({ batch_size, beam_size }, at::kFloat);
-    auto out_length = at::zeros({ batch_size, beam_size }, at::kInt);
+    vector<vector<pair<vector<int>, float>>> output;
+    output.reserve(batch_size);
 
-    auto outputs_a = output.accessor<int, 3>();
-    // auto timesteps_a = timesteps.accessor<int, 3>();
-    auto scores_a = scores.accessor<float, 2>();
-    auto out_length_a = out_length.accessor<int, 2>();
-
-    for (size_t b = 0; b < batch_results.size(); ++b)
+    for (auto& results : batch_results)
     {
-        const auto& results = batch_results[b];
-        for (size_t p = 0; p < results.size(); ++p)
-        {
-            auto& [score, output] = results[p];
-            for (size_t t = 0; t < output.tokens.size(); ++t)
-            {
-                outputs_a[b][p][t] = output.tokens[t];  // fill output tokens
-                // timesteps_a[b][p][t] = output.timesteps[t];
-            }
-            scores_a[b][p] = score;
-            out_length_a[b][p] = output.tokens.size();
-        }
+        vector<pair<vector<int>, float>> batch_output;
+        batch_output.reserve(results.size());  // beam-size
+
+        for (auto& [score, output] : results)
+            batch_output.emplace_back(move(output.tokens), score);
+
+        output.push_back(move(batch_output));
     }
 
-    return { output, scores, out_length };
+    return output;
 }
 
 PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)

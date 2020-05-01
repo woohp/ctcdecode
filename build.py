@@ -48,7 +48,7 @@ if compile_test('lzma.h', 'lzma'):
     compile_args.append('-DHAVE_XZLIB')
     ext_libs.append('lzma')
 
-third_party_libs = ["openfst-1.7.7/src/include", "ThreadPool"]
+third_party_libs = ["openfst-1.7.7/src/include"]
 lib_sources = glob.glob('third_party/openfst-1.7.7/src/lib/*.cc')
 lib_sources = [fn for fn in lib_sources if not (fn.endswith('main.cc') or fn.endswith('test.cc'))]
 
@@ -57,8 +57,6 @@ ctc_sources = glob.glob('ctcdecode/src/*.cpp')
 
 extension = CppExtension(
     name='ctcdecode._ext.ctc_decode',
-    package=True,
-    with_cuda=False,
     sources=ctc_sources + lib_sources,
     include_dirs=third_party_includes + include_paths(),
     libraries=ext_libs,
