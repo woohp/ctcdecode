@@ -9,12 +9,12 @@ Candidate = NamedTuple('Candidate', [('value', List[int]), ('log_prob', float)])
 class CTCBeamDecoder:
     def __init__(
         self,
-        cutoff_top_n: int = 40,
-        cutoff_prob: float = 1.0,
-        beam_width: int = 100,
-        num_processes: int = 4,
-        blank_id: int = 0,
-        log_probs_input: bool = False
+        cutoff_top_n = 40,
+        cutoff_prob = 1.0,
+        beam_width = 100,
+        num_processes = 4,
+        blank_id = 0,
+        log_probs_input = False
     ):
         self.cutoff_top_n = cutoff_top_n
         self.beam_width = beam_width
@@ -23,11 +23,7 @@ class CTCBeamDecoder:
         self.log_probs_input = log_probs_input
         self.cutoff_prob = cutoff_prob
 
-    def decode(
-        self,
-        probs: torch.Tensor,
-        seq_lens: Optional[torch.Tensor] = None,
-    ) -> List[List[Candidate]]:
+    def decode(self, probs, seq_lens=None):
 
         # We expect batch x seq x label_size
         probs = probs.cpu().float()
@@ -37,7 +33,7 @@ class CTCBeamDecoder:
         else:
             seq_lens = seq_lens.cpu().int()
 
-        out: List[List[Tuple[List[int], float]]] = ctc_decode.beam_decode(
+        out = ctc_decode.beam_decode(
             probs,
             seq_lens,
             self.beam_width,
