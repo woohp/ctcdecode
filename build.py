@@ -29,7 +29,7 @@ if not os.path.isdir('third_party'):
     os.mkdir('third_party')
 if not os.path.isdir('ctcdecode/_ext'):
     os.mkdir('ctcdecode/_ext')
-
+    with open('ctcdecode/_ext/__init__.py', 'w'): pass
 
 # Download/Extract openfst
 download_extract(
