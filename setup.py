@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import multiprocessing
 import multiprocessing.pool
 import os
 
@@ -36,7 +37,7 @@ def parallelCCompile(
         self._compile(obj, src, ext, cc_args, extra_postargs, pp_opts)
 
     # convert to list, imap is evaluated on-demand
-    thread_pool = multiprocessing.pool.ThreadPool(os.cpu_count())
+    thread_pool = multiprocessing.pool.ThreadPool(multiprocessing.cpu_count())
     list(thread_pool.imap(_single_compile, objects))
     return objects
 

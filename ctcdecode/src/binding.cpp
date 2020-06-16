@@ -54,8 +54,12 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
         vector<pair<vector<int>, float>> batch_output;
         batch_output.reserve(results.size());  // beam-size
 
-        for (auto& [score, output] : results)
+        for (auto& result : results)
+        {
+            auto& score = result.first;
+            auto& output = result.second;
             batch_output.emplace_back(move(output.tokens), score);
+        }
 
         output.push_back(move(batch_output));
     }

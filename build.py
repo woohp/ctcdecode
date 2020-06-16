@@ -2,22 +2,33 @@
 
 import glob
 import os
+import sys
 import tarfile
 
-import urllib.request
 from torch.utils.cpp_extension import CppExtension, include_paths
 
 
 def download_extract(url, dl_path):
+    if sys.version_info[0] < 3:
+        from urllib import urlretrieve
+    else:
+        from urllib.request import urlretrieve
+
     if not os.path.isfile(dl_path):
         # Already downloaded
-        urllib.request.urlretrieve(url, dl_path)
+        urlretrieve(url, dl_path)
     if dl_path.endswith(".tar.gz") and os.path.isdir(dl_path[:-len(".tar.gz")]):
         # Already extracted
         return
     tar = tarfile.open(dl_path)
     tar.extractall('third_party/')
     tar.close()
+
+
+if not os.path.isdir('third_party'):
+    os.mkdir('third_party')
+if not os.path.isdir('ctcdecode/_ext'):
+    os.mkdir('ctcdecode/_ext')
 
 
 # Download/Extract openfst
