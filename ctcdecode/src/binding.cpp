@@ -3,9 +3,10 @@
 #include <algorithm>
 #include <iostream>
 #include <memory>
-#include <string>
-#include <pybind11/pybind11.h>
 #include <pybind11/numpy.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <string>
 #include <vector>
 
 using namespace std;
@@ -38,7 +39,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
         {
             for (int n = 0; n < num_classes; ++n)
             {
-                float val = prob_a(b,t,n);
+                float val = prob_a(b, t, n);
                 temp[t][n] = val;
             }
         }
@@ -69,7 +70,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     return output;
 }
 
-PYBIND11_MODULE(EXTENSION_NAME, m)
+PYBIND11_MODULE(ctc_decode, m)
 {
     m.def("beam_decode", &beam_decode, "beam_decode");
 }

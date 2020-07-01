@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 from ._ext import ctc_decode
 from typing import List, NamedTuple, Optional, Tuple
 
@@ -24,14 +24,13 @@ class CTCBeamDecoder:
         self.cutoff_prob = cutoff_prob
 
     def decode(self, probs, seq_lens=None):
-
+        """
+        Input: probs, seq_lens numpy array
+        """
         # We expect batch x seq x label_size
-        probs = probs.cpu().float()
         batch_size, max_seq_len = probs.shape[:2]
         if seq_lens is None:
-            seq_lens = torch.full((batch_size, ), max_seq_len, dtype=torch.int)
-        else:
-            seq_lens = seq_lens.cpu().int()
+            seq_lens = np.full((batch_size, ), max_seq_len, dtype=np.int32)
 
         out = ctc_decode.beam_decode(
             probs,
