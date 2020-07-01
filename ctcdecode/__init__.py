@@ -2,19 +2,18 @@ import numpy as np
 from ._ext import ctc_decode
 from typing import List, NamedTuple, Optional, Tuple
 
-
 Candidate = NamedTuple('Candidate', [('value', List[int]), ('log_prob', float)])
 
 
 class CTCBeamDecoder:
     def __init__(
         self,
-        cutoff_top_n = 40,
-        cutoff_prob = 1.0,
-        beam_width = 100,
-        num_processes = 4,
-        blank_id = 0,
-        log_probs_input = False
+        cutoff_top_n=40,
+        cutoff_prob=1.0,
+        beam_width=100,
+        num_processes=4,
+        blank_id=0,
+        log_probs_input=False,
     ):
         self.cutoff_top_n = cutoff_top_n
         self.beam_width = beam_width
