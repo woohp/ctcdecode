@@ -4,14 +4,16 @@
 #include <iostream>
 #include <memory>
 #include <string>
-#include <torch/torch.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/numpy.h>
 #include <vector>
 
 using namespace std;
+namespace py = pybind11;
 
 vector<vector<pair<vector<int>, float>>> beam_decode(
-    at::Tensor th_probs,
-    at::Tensor th_seq_lens,
+    py::array_t<float> th_probs,
+    py::array_t<int> th_seq_lens,
     int beam_size,
     size_t num_processes,
     double cutoff_prob,
@@ -19,13 +21,13 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     size_t blank_id,
     bool log_input)
 {
-    const int64_t batch_size = th_probs.size(0);
-    const int64_t max_time = th_probs.size(1);
-    const int64_t num_classes = th_probs.size(2);
+    const int64_t batch_size = th_probs.shape(0);
+    const int64_t max_time = th_probs.shape(1);
+    const int64_t num_classes = th_probs.shape(2);
 
     vector<vector<vector<double>>> inputs;
-    auto prob_a = th_probs.accessor<float, 3>();
-    auto seq_len_a = th_seq_lens.accessor<int, 1>();
+    auto prob_a = th_probs.unchecked<3>();
+    auto seq_len_a = th_seq_lens.unchecked<1>();
 
     for (int b = 0; b < batch_size; ++b)
     {
@@ -36,7 +38,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
         {
             for (int n = 0; n < num_classes; ++n)
             {
-                float val = prob_a[b][t][n];
+                float val = prob_a(b,t,n);
                 temp[t][n] = val;
             }
         }
@@ -67,7 +69,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     return output;
 }
 
-PYBIND11_MODULE(TORCH_EXTENSION_NAME, m)
+PYBIND11_MODULE(EXTENSION_NAME, m)
 {
     m.def("beam_decode", &beam_decode, "beam_decode");
 }

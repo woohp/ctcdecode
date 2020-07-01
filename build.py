@@ -5,7 +5,7 @@ import os
 import sys
 import tarfile
 
-from torch.utils.cpp_extension import CppExtension, include_paths
+from setuptools import Extension
 
 
 def download_extract(url, dl_path):
@@ -23,6 +23,20 @@ def download_extract(url, dl_path):
     tar = tarfile.open(dl_path)
     tar.extractall('third_party/')
     tar.close()
+
+
+class get_pybind_include(object):
+    """Helper class to determine the pybind11 include path
+    The purpose of this class is to postpone importing pybind11
+    until it is actually installed, so that the ``get_include()``
+    method can be invoked. """
+
+    def __init__(self, user=False):
+        self.user = user
+
+    def __str__(self):
+        import pybind11
+        return pybind11.get_include(self.user)
 
 
 if not os.path.isdir('third_party'):
@@ -66,10 +80,10 @@ lib_sources = [fn for fn in lib_sources if not (fn.endswith('main.cc') or fn.end
 third_party_includes = [os.path.realpath(os.path.join("third_party", lib)) for lib in third_party_libs]
 ctc_sources = glob.glob('ctcdecode/src/*.cpp')
 
-extension = CppExtension(
+extension = Extension(
     name='ctcdecode._ext.ctc_decode',
     sources=ctc_sources + lib_sources,
-    include_dirs=third_party_includes + include_paths(),
+    include_dirs=third_party_includes + [get_pybind_include(), get_pybind_include(user=True)],
     libraries=ext_libs,
     extra_compile_args=compile_args,
     language='c++'

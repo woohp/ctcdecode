@@ -4,7 +4,8 @@ import multiprocessing.pool
 import os
 
 from setuptools import setup, find_packages, distutils
-from torch.utils.cpp_extension import BuildExtension
+from setuptools.command.build_ext import build_ext
+
 
 this_file = os.path.dirname(__file__)
 
@@ -48,13 +49,15 @@ import build
 
 setup(
     name="ctcdecode",
-    version="0.4",
+    version="0.4.2",
     description="CTC Decoder for PyTorch based on Paddle Paddle's implementation",
     url="https://github.com/parlance/ctcdecode",
     author="Ryan Leary",
     author_email="ryanleary@gmail.com",
+    setup_requires=['pybind11>=2.5.0', 'numpy'],
+    install_requires=['pybind11>=2.5.0', 'numpy'],
     # Exclude the build files.
     packages=find_packages(exclude=["build"]),
     ext_modules=[build.extension],
-    cmdclass={'build_ext': BuildExtension}
+    cmdclass={'build_ext': build_ext}
 )
