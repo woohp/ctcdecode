@@ -25,8 +25,7 @@ std::vector<Output> ctc_beam_search_decoder(
     int beam_size,
     float cutoff_prob = 1.0,
     size_t cutoff_top_n = 40,
-    size_t blank_id = 0,
-    bool log_input = false);
+    size_t blank_id = 0);
 
 /* CTC Beam Search Decoder for batch data
 
@@ -47,8 +46,7 @@ std::vector<std::vector<Output>> ctc_beam_search_decoder_batch(
     size_t num_processes,
     float cutoff_prob = 1.0,
     size_t cutoff_top_n = 40,
-    size_t blank_id = 0,
-    bool log_input = false);
+    size_t blank_id = 0);
 
 class DecoderState
 {
@@ -57,7 +55,6 @@ class DecoderState
     float cutoff_prob;
     size_t cutoff_top_n;
     size_t blank_id;
-    bool log_input;
 
     std::vector<PathTrie*> prefixes;
     PathTrie root;
@@ -70,7 +67,7 @@ public:
      *     cutoff_prob: Cutoff probability for pruning.
      *     cutoff_top_n: Cutoff number for pruning.
      */
-    DecoderState(size_t beam_size, float cutoff_prob, size_t cutoff_top_n, size_t blank_id, bool log_input);
+    DecoderState(size_t beam_size, float cutoff_prob, size_t cutoff_top_n, size_t blank_id);
     ~DecoderState() = default;
 
     /* Process logits in decoder stream

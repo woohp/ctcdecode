@@ -14,13 +14,12 @@
 #include "thread_pool.h"
 using namespace std;
 
-DecoderState::DecoderState(size_t beam_size, float cutoff_prob, size_t cutoff_top_n, size_t blank_id, bool log_input)
+DecoderState::DecoderState(size_t beam_size, float cutoff_prob, size_t cutoff_top_n, size_t blank_id)
     : abs_time_step(0)
     , beam_size(beam_size)
     , cutoff_prob(cutoff_prob)
     , cutoff_top_n(cutoff_top_n)
     , blank_id(blank_id)
-    , log_input(log_input)
 {
     // init prefixes' root
     root.score = root.log_prob_b_prev = 0.0f;
@@ -40,7 +39,7 @@ void DecoderState::next(const vector<vector<float>>& probs_seq)
         float min_cutoff = -NUM_FLT_INF;
         bool full_beam = false;
 
-        vector<pair<size_t, float>> log_prob_idx = get_pruned_log_probs(prob, cutoff_prob, cutoff_top_n, log_input);
+        vector<pair<size_t, float>> log_prob_idx = get_pruned_log_probs(prob, cutoff_prob, cutoff_top_n);
         // loop over chars
         for (size_t index = 0; index < log_prob_idx.size(); index++)
         {
@@ -133,14 +132,9 @@ vector<Output> DecoderState::decode() const
 }
 
 vector<Output> ctc_beam_search_decoder(
-    const vector<vector<float>>& probs_seq,
-    int beam_size,
-    float cutoff_prob,
-    size_t cutoff_top_n,
-    size_t blank_id,
-    bool log_input)
+    const vector<vector<float>>& probs_seq, int beam_size, float cutoff_prob, size_t cutoff_top_n, size_t blank_id)
 {
-    DecoderState state(beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);
+    DecoderState state(beam_size, cutoff_prob, cutoff_top_n, blank_id);
     state.next(probs_seq);
     return state.decode();
 }
@@ -151,8 +145,7 @@ vector<vector<Output>> ctc_beam_search_decoder_batch(
     size_t num_processes,
     float cutoff_prob,
     size_t cutoff_top_n,
-    size_t blank_id,
-    bool log_input)
+    size_t blank_id)
 {
     VALID_CHECK_GT(num_processes, 0, "num_processes must be nonnegative!");
     // thread pool
@@ -164,7 +157,7 @@ vector<vector<Output>> ctc_beam_search_decoder_batch(
     vector<vector<Output>> outputs(batch_size);
 
     pool.parallel_for(0, batch_size, [&](size_t i, size_t) {
-        outputs[i] = ctc_beam_search_decoder(probs_split[i], beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);
+        outputs[i] = ctc_beam_search_decoder(probs_split[i], beam_size, cutoff_prob, cutoff_top_n, blank_id);
     });
 
     return outputs;

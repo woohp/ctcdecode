@@ -54,7 +54,7 @@ class TestDecoders(unittest.TestCase):
         return ''.join([self.vocab_list[x] for x in tokens])
 
     def test_beam_search_decoder_1(self):
-        probs_seq = np.array([self.probs_seq1], dtype=np.float32)
+        probs_seq = np.log(np.array([self.probs_seq1], dtype=np.float32))
         decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
                                            blank_id=self.vocab_list.index('_'))
         results = decoder.decode(probs_seq)
@@ -62,7 +62,7 @@ class TestDecoders(unittest.TestCase):
         self.assertEqual(output_str, self.beam_search_result[0])
 
     def test_beam_search_decoder_2(self):
-        probs_seq = np.array([self.probs_seq2], dtype=np.float32)
+        probs_seq = np.log(np.array([self.probs_seq2], dtype=np.float32))
         decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
                                            blank_id=self.vocab_list.index('_'))
         results = decoder.decode(probs_seq)
@@ -70,20 +70,9 @@ class TestDecoders(unittest.TestCase):
         self.assertEqual(output_str, self.beam_search_result[1])
 
     def test_beam_search_decoder_batch(self):
-        probs_seq = np.array([self.probs_seq1, self.probs_seq2], dtype=np.float32)
-        decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
-                                           blank_id=self.vocab_list.index('_'), num_processes=24)
-        results = decoder.decode(probs_seq)
-        output_str1 = self.convert_to_string(results[0][0][0])
-        output_str2 = self.convert_to_string(results[1][0][0])
-        self.assertEqual(output_str1, self.beam_search_result[0])
-        self.assertEqual(output_str2, self.beam_search_result[1])
-
-    def test_beam_search_decoder_batch_log(self):
         probs_seq = np.log(np.array([self.probs_seq1, self.probs_seq2], dtype=np.float32))
         decoder = ctcdecode.CTCBeamDecoder(beam_width=self.beam_size,
-                                           blank_id=self.vocab_list.index('_'), log_probs_input=True,
-                                           num_processes=24)
+                                           blank_id=self.vocab_list.index('_'), num_processes=24)
         results = decoder.decode(probs_seq)
         output_str1 = self.convert_to_string(results[0][0][0])
         output_str2 = self.convert_to_string(results[1][0][0])

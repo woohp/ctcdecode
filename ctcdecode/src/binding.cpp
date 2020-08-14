@@ -19,8 +19,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     size_t num_processes,
     float cutoff_prob,
     size_t cutoff_top_n,
-    size_t blank_id,
-    bool log_input)
+    size_t blank_id)
 {
     const int64_t batch_size = probs.shape(0);
     const int64_t max_time = probs.shape(1);
@@ -46,8 +45,8 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
         inputs.push_back(temp);
     }
 
-    vector<vector<Output>> batch_results = ctc_beam_search_decoder_batch(
-        inputs, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, log_input);
+    vector<vector<Output>> batch_results
+        = ctc_beam_search_decoder_batch(inputs, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id);
 
     vector<vector<pair<vector<int>, float>>> output;
     output.reserve(batch_size);
@@ -74,12 +73,11 @@ PYBIND11_MODULE(ctc_decode, m)
         "beam_decode",
         &beam_decode,
         "beam_decode",
-        "probs"_a,
+        "log_probs"_a,
         "seq_lens"_a,
         "beam_size"_a,
         "num_processes"_a,
         "cutoff_prob"_a,
         "cutoff_top_n"_a,
-        "blank_id"_a,
-        "log_input"_a);
+        "blank_id"_a);
 }
