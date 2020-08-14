@@ -6,12 +6,12 @@
  */
 struct Output
 {
-    double score;
+    float score;
     std::vector<int> tokens, timesteps;
 
     Output() = default;
 
-    Output(double score, const std::vector<int>& tokens, const std::vector<int> timesteps)
+    Output(float score, const std::vector<int>& tokens, const std::vector<int>& timesteps)
         : score(score)
         , tokens(tokens)
         , timesteps(timesteps)

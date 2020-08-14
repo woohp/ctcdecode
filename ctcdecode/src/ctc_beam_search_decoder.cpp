@@ -14,7 +14,7 @@
 #include "thread_pool.h"
 using namespace std;
 
-DecoderState::DecoderState(size_t beam_size, double cutoff_prob, size_t cutoff_top_n, size_t blank_id, bool log_input)
+DecoderState::DecoderState(size_t beam_size, float cutoff_prob, size_t cutoff_top_n, size_t blank_id, bool log_input)
     : abs_time_step(0)
     , beam_size(beam_size)
     , cutoff_prob(cutoff_prob)
@@ -23,11 +23,11 @@ DecoderState::DecoderState(size_t beam_size, double cutoff_prob, size_t cutoff_t
     , log_input(log_input)
 {
     // init prefixes' root
-    root.score = root.log_prob_b_prev = 0.0;
+    root.score = root.log_prob_b_prev = 0.0f;
     prefixes.push_back(&root);
 }
 
-void DecoderState::next(const vector<vector<double>>& probs_seq)
+void DecoderState::next(const vector<vector<float>>& probs_seq)
 {
     // dimension check
     size_t num_time_steps = probs_seq.size();
@@ -125,7 +125,7 @@ vector<Output> DecoderState::decode() const
     // return order of decoding result. To delete when decoder gets stable.
     for (size_t i = 0; i < beam_size && i < prefixes_copy.size(); ++i)
     {
-        double approx_ctc = scores[prefixes_copy[i]];
+        float approx_ctc = scores[prefixes_copy[i]];
         prefixes_copy[i]->approx_ctc = approx_ctc;
     }
 
@@ -133,9 +133,9 @@ vector<Output> DecoderState::decode() const
 }
 
 vector<Output> ctc_beam_search_decoder(
-    const vector<vector<double>>& probs_seq,
+    const vector<vector<float>>& probs_seq,
     int beam_size,
-    double cutoff_prob,
+    float cutoff_prob,
     size_t cutoff_top_n,
     size_t blank_id,
     bool log_input)
@@ -146,10 +146,10 @@ vector<Output> ctc_beam_search_decoder(
 }
 
 vector<vector<Output>> ctc_beam_search_decoder_batch(
-    const vector<vector<vector<double>>>& probs_split,
+    const vector<vector<vector<float>>>& probs_split,
     int beam_size,
     size_t num_processes,
-    double cutoff_prob,
+    float cutoff_prob,
     size_t cutoff_top_n,
     size_t blank_id,
     bool log_input)

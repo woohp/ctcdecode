@@ -6,14 +6,14 @@
 using namespace std;
 
 vector<pair<size_t, float>>
-get_pruned_log_probs(const vector<double>& prob_step, double cutoff_prob, size_t cutoff_top_n, bool log_input)
+get_pruned_log_probs(const vector<float>& prob_step, float cutoff_prob, size_t cutoff_top_n, bool log_input)
 {
-    vector<pair<int, double>> prob_idx;
+    vector<pair<int, float>> prob_idx;
     prob_idx.reserve(prob_step.size());
-    const double log_cutoff_prob = log(cutoff_prob);
+    const float log_cutoff_prob = log(cutoff_prob);
     for (size_t i = 0; i < prob_step.size(); ++i)
     {
-        prob_idx.push_back(pair<int, double>(i, prob_step[i]));
+        prob_idx.push_back(pair<int, float>(i, prob_step[i]));
     }
 
     // pruning of vacobulary
@@ -23,7 +23,7 @@ get_pruned_log_probs(const vector<double>& prob_step, double cutoff_prob, size_t
         sort(prob_idx.begin(), prob_idx.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
         if (log_cutoff_prob < 0.0)
         {
-            double cum_prob = 0.0;
+            float cum_prob = 0.0f;
             cutoff_len = 0;
             for (size_t i = 0; i < prob_idx.size(); ++i)
             {

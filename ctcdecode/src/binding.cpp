@@ -17,7 +17,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     py::array_t<int> seq_lens,
     int beam_size,
     size_t num_processes,
-    double cutoff_prob,
+    float cutoff_prob,
     size_t cutoff_top_n,
     size_t blank_id,
     bool log_input)
@@ -26,7 +26,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     const int64_t max_time = probs.shape(1);
     const int64_t num_classes = probs.shape(2);
 
-    vector<vector<vector<double>>> inputs;
+    vector<vector<vector<float>>> inputs;
     auto prob_a = probs.unchecked<3>();
     auto seq_len_a = seq_lens.unchecked<1>();
 
@@ -34,7 +34,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     {
         // avoid a crash by ensuring that an erroneous seq_len doesn't have us try to access memory we shouldn't
         int seq_len = std::min<int>(seq_len_a[b], max_time);
-        vector<vector<double>> temp(seq_len, vector<double>(num_classes));
+        vector<vector<float>> temp(seq_len, vector<float>(num_classes));
         for (int t = 0; t < seq_len; ++t)
         {
             for (int n = 0; n < num_classes; ++n)

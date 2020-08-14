@@ -21,9 +21,9 @@
 */
 
 std::vector<Output> ctc_beam_search_decoder(
-    const std::vector<std::vector<double>>& probs_seq,
+    const std::vector<std::vector<float>>& probs_seq,
     int beam_size,
-    double cutoff_prob = 1.0,
+    float cutoff_prob = 1.0,
     size_t cutoff_top_n = 40,
     size_t blank_id = 0,
     bool log_input = false);
@@ -42,10 +42,10 @@ std::vector<Output> ctc_beam_search_decoder(
  *     result for one audio sample.
 */
 std::vector<std::vector<Output>> ctc_beam_search_decoder_batch(
-    const std::vector<std::vector<std::vector<double>>>& probs_split,
+    const std::vector<std::vector<std::vector<float>>>& probs_split,
     int beam_size,
     size_t num_processes,
-    double cutoff_prob = 1.0,
+    float cutoff_prob = 1.0,
     size_t cutoff_top_n = 40,
     size_t blank_id = 0,
     bool log_input = false);
@@ -54,7 +54,7 @@ class DecoderState
 {
     int abs_time_step;
     size_t beam_size;
-    double cutoff_prob;
+    float cutoff_prob;
     size_t cutoff_top_n;
     size_t blank_id;
     bool log_input;
@@ -70,7 +70,7 @@ public:
      *     cutoff_prob: Cutoff probability for pruning.
      *     cutoff_top_n: Cutoff number for pruning.
      */
-    DecoderState(size_t beam_size, double cutoff_prob, size_t cutoff_top_n, size_t blank_id, bool log_input);
+    DecoderState(size_t beam_size, float cutoff_prob, size_t cutoff_top_n, size_t blank_id, bool log_input);
     ~DecoderState() = default;
 
     /* Process logits in decoder stream
@@ -79,7 +79,7 @@ public:
      *     probs: 2-D vector where each element is a vector of probabilities
      *               over alphabet of one time step.
      */
-    void next(const std::vector<std::vector<double>>& probs_seq);
+    void next(const std::vector<std::vector<float>>& probs_seq);
 
     /* Get current transcription from the decoder stream state
      *
