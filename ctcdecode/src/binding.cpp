@@ -13,8 +13,8 @@ using namespace std;
 namespace py = pybind11;
 
 vector<vector<pair<vector<int>, float>>> beam_decode(
-    py::array_t<float> th_probs,
-    py::array_t<int> th_seq_lens,
+    py::array_t<float> probs,
+    py::array_t<int> seq_lens,
     int beam_size,
     size_t num_processes,
     double cutoff_prob,
@@ -22,13 +22,13 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     size_t blank_id,
     bool log_input)
 {
-    const int64_t batch_size = th_probs.shape(0);
-    const int64_t max_time = th_probs.shape(1);
-    const int64_t num_classes = th_probs.shape(2);
+    const int64_t batch_size = probs.shape(0);
+    const int64_t max_time = probs.shape(1);
+    const int64_t num_classes = probs.shape(2);
 
     vector<vector<vector<double>>> inputs;
-    auto prob_a = th_probs.unchecked<3>();
-    auto seq_len_a = th_seq_lens.unchecked<1>();
+    auto prob_a = probs.unchecked<3>();
+    auto seq_len_a = seq_lens.unchecked<1>();
 
     for (int b = 0; b < batch_size; ++b)
     {
@@ -46,7 +46,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
         inputs.push_back(temp);
     }
 
-    vector<vector<pair<double, Output>>> batch_results = ctc_beam_search_decoder_batch(
+    vector<vector<Output>> batch_results = ctc_beam_search_decoder_batch(
         inputs, beam_size, num_processes, cutoff_prob, cutoff_top_n, blank_id, log_input);
 
     vector<vector<pair<vector<int>, float>>> output;
@@ -58,11 +58,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
         batch_output.reserve(results.size());  // beam-size
 
         for (auto& result : results)
-        {
-            auto& score = result.first;
-            auto& output = result.second;
-            batch_output.emplace_back(move(output.tokens), score);
-        }
+            batch_output.emplace_back(move(result.tokens), result.score);
 
         output.push_back(move(batch_output));
     }
@@ -72,5 +68,18 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
 
 PYBIND11_MODULE(ctc_decode, m)
 {
-    m.def("beam_decode", &beam_decode, "beam_decode");
+    using namespace pybind11::literals;
+
+    m.def(
+        "beam_decode",
+        &beam_decode,
+        "beam_decode",
+        "probs"_a,
+        "seq_lens"_a,
+        "beam_size"_a,
+        "num_processes"_a,
+        "cutoff_prob"_a,
+        "cutoff_top_n"_a,
+        "blank_id"_a,
+        "log_input"_a);
 }

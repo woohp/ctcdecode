@@ -14,7 +14,7 @@
 #include "thread_pool.h"
 using namespace std;
 
-DecoderState::DecoderState(size_t beam_size, double cutoff_prob, size_t cutoff_top_n, size_t blank_id, int log_input)
+DecoderState::DecoderState(size_t beam_size, double cutoff_prob, size_t cutoff_top_n, size_t blank_id, bool log_input)
     : abs_time_step(0)
     , beam_size(beam_size)
     , cutoff_prob(cutoff_prob)
@@ -105,7 +105,7 @@ void DecoderState::next(const vector<vector<double>>& probs_seq)
     }  // end of loop over time
 }
 
-vector<pair<double, Output>> DecoderState::decode() const
+vector<Output> DecoderState::decode() const
 {
     vector<PathTrie*> prefixes_copy = prefixes;
     unordered_map<const PathTrie*, float> scores;
@@ -132,27 +132,27 @@ vector<pair<double, Output>> DecoderState::decode() const
     return get_beam_search_result(prefixes_copy, beam_size);
 }
 
-vector<pair<double, Output>> ctc_beam_search_decoder(
+vector<Output> ctc_beam_search_decoder(
     const vector<vector<double>>& probs_seq,
     int beam_size,
     double cutoff_prob,
     size_t cutoff_top_n,
     size_t blank_id,
-    int log_input)
+    bool log_input)
 {
     DecoderState state(beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);
     state.next(probs_seq);
     return state.decode();
 }
 
-vector<vector<pair<double, Output>>> ctc_beam_search_decoder_batch(
+vector<vector<Output>> ctc_beam_search_decoder_batch(
     const vector<vector<vector<double>>>& probs_split,
     int beam_size,
     size_t num_processes,
     double cutoff_prob,
     size_t cutoff_top_n,
     size_t blank_id,
-    int log_input)
+    bool log_input)
 {
     VALID_CHECK_GT(num_processes, 0, "num_processes must be nonnegative!");
     // thread pool
@@ -161,7 +161,7 @@ vector<vector<pair<double, Output>>> ctc_beam_search_decoder_batch(
     size_t batch_size = probs_split.size();
 
     // enqueue the tasks of decoding
-    vector<vector<pair<double, Output>>> outputs(batch_size);
+    vector<vector<Output>> outputs(batch_size);
 
     pool.parallel_for(0, batch_size, [&](size_t i, size_t) {
         outputs[i] = ctc_beam_search_decoder(probs_split[i], beam_size, cutoff_prob, cutoff_top_n, blank_id, log_input);

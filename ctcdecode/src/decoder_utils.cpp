@@ -6,19 +6,21 @@
 using namespace std;
 
 vector<pair<size_t, float>>
-get_pruned_log_probs(const vector<double>& prob_step, double cutoff_prob, size_t cutoff_top_n, int log_input)
+get_pruned_log_probs(const vector<double>& prob_step, double cutoff_prob, size_t cutoff_top_n, bool log_input)
 {
     vector<pair<int, double>> prob_idx;
-    double log_cutoff_prob = log(cutoff_prob);
+    prob_idx.reserve(prob_step.size());
+    const double log_cutoff_prob = log(cutoff_prob);
     for (size_t i = 0; i < prob_step.size(); ++i)
     {
         prob_idx.push_back(pair<int, double>(i, prob_step[i]));
     }
+
     // pruning of vacobulary
     size_t cutoff_len = prob_step.size();
     if (log_cutoff_prob < 0.0 || cutoff_top_n < cutoff_len)
     {
-        sort(prob_idx.begin(), prob_idx.end(), pair_comp_second_rev<int, double>);
+        sort(prob_idx.begin(), prob_idx.end(), [](const auto& a, const auto& b) { return a.second > b.second; });
         if (log_cutoff_prob < 0.0)
         {
             double cum_prob = 0.0;
@@ -35,100 +37,36 @@ get_pruned_log_probs(const vector<double>& prob_step, double cutoff_prob, size_t
         {
             cutoff_len = cutoff_top_n;
         }
-        prob_idx = vector<pair<int, double>>(prob_idx.begin(), prob_idx.begin() + cutoff_len);
+        prob_idx.resize(cutoff_len);
     }
+
     vector<pair<size_t, float>> log_prob_idx;
     for (size_t i = 0; i < cutoff_len; ++i)
     {
         log_prob_idx.push_back(pair<int, float>(
-            prob_idx[i].first, log_input ? prob_idx[i].second : log(prob_idx[i].second + NUM_FLT_MIN)));
+            prob_idx[i].first,
+            log_input ? prob_idx[i].second : log(prob_idx[i].second + numeric_limits<float>::min())));
     }
     return log_prob_idx;
 }
 
-vector<pair<double, Output>> get_beam_search_result(const vector<PathTrie*>& prefixes, size_t beam_size)
+vector<Output> get_beam_search_result(const vector<PathTrie*>& prefixes, size_t beam_size)
 {
     // allow for the post processing
-    vector<PathTrie*> space_prefixes;
-    if (space_prefixes.empty())
-    {
-        for (size_t i = 0; i < beam_size && i < prefixes.size(); ++i)
-        {
-            space_prefixes.push_back(prefixes[i]);
-        }
-    }
+    vector<PathTrie*> space_prefixes(prefixes.begin(), prefixes.begin() + min(beam_size, prefixes.size()));
 
     sort(space_prefixes.begin(), space_prefixes.end(), prefix_compare);
-    vector<pair<double, Output>> output_vecs;
+    vector<Output> output_vecs;
+    output_vecs.reserve(space_prefixes.size());
     for (size_t i = 0; i < beam_size && i < space_prefixes.size(); ++i)
     {
-        vector<int> output;
+        vector<int> tokens;
         vector<int> timesteps;
-        space_prefixes[i]->get_path_vec(output, timesteps);
-        Output outputs;
-        outputs.tokens = output;
-        outputs.timesteps = timesteps;
-        pair<double, Output> output_pair(-space_prefixes[i]->approx_ctc, outputs);
-        output_vecs.emplace_back(output_pair);
+        space_prefixes[i]->get_path_vec(tokens, timesteps);
+        output_vecs.emplace_back(-space_prefixes[i]->approx_ctc, tokens, timesteps);
     }
 
     return output_vecs;
-}
-
-size_t get_utf8_str_len(const string& str)
-{
-    size_t str_len = 0;
-    for (char c : str)
-    {
-        str_len += ((c & 0xc0) != 0x80);
-    }
-    return str_len;
-}
-
-vector<string> split_utf8_str(const string& str)
-{
-    vector<string> result;
-    string out_str;
-
-    for (char c : str)
-    {
-        if ((c & 0xc0) != 0x80)  // new UTF-8 character
-        {
-            if (!out_str.empty())
-            {
-                result.push_back(out_str);
-                out_str.clear();
-            }
-        }
-
-        out_str.append(1, c);
-    }
-    result.push_back(out_str);
-    return result;
-}
-
-vector<string> split_str(const string& s, const string& delim)
-{
-    vector<string> result;
-    size_t start = 0, delim_len = delim.size();
-    while (true)
-    {
-        size_t end = s.find(delim, start);
-        if (end == string::npos)
-        {
-            if (start < s.size())
-            {
-                result.push_back(s.substr(start));
-            }
-            break;
-        }
-        if (end > start)
-        {
-            result.push_back(s.substr(start, end - start));
-        }
-        start = end + delim_len;
-    }
-    return result;
 }
 
 bool prefix_compare(const PathTrie* x, const PathTrie* y)
@@ -168,63 +106,4 @@ bool prefix_compare_external_scores(
     {
         return scores.at(x) > scores.at(y);
     }
-}
-
-void add_word_to_fst(const vector<int>& word, fst::StdVectorFst* dictionary)
-{
-    if (dictionary->NumStates() == 0)
-    {
-        fst::StdVectorFst::StateId start = dictionary->AddState();
-        assert(start == 0);
-        dictionary->SetStart(start);
-    }
-    fst::StdVectorFst::StateId src = dictionary->Start();
-    fst::StdVectorFst::StateId dst;
-    for (auto c : word)
-    {
-        dst = dictionary->AddState();
-        dictionary->AddArc(src, fst::StdArc(c, c, 0, dst));
-        src = dst;
-    }
-    dictionary->SetFinal(dst, fst::StdArc::Weight::One());
-}
-
-bool add_word_to_dictionary(
-    const string& word,
-    const unordered_map<string, int>& char_map,
-    bool add_space,
-    int space_id,
-    fst::StdVectorFst* dictionary)
-{
-    auto characters = split_utf8_str(word);
-
-    vector<int> int_word;
-
-    for (auto& c : characters)
-    {
-        if (c == " ")
-        {
-            int_word.push_back(space_id);
-        }
-        else
-        {
-            auto int_c = char_map.find(c);
-            if (int_c != char_map.end())
-            {
-                int_word.push_back(int_c->second);
-            }
-            else
-            {
-                return false;  // return without adding
-            }
-        }
-    }
-
-    if (add_space)
-    {
-        int_word.push_back(space_id);
-    }
-
-    add_word_to_fst(int_word, dictionary);
-    return true;  // return with successful adding
 }
