@@ -1,8 +1,13 @@
-import numpy as np
-from ._ext import ctc_decode
 from typing import List, NamedTuple, Optional, Tuple
 
-Candidate = NamedTuple('Candidate', [('value', List[int]), ('log_prob', float)])
+import numpy as np
+
+from ._ext import ctc_decode
+
+
+class Candidate(NamedTuple):
+    value: list[int]
+    log_prob: float
 
 
 class CTCBeamDecoder:
@@ -27,7 +32,7 @@ class CTCBeamDecoder:
         # We expect batch x seq x label_size
         batch_size, max_seq_len = log_probs.shape[:2]
         if seq_lens is None:
-            seq_lens = np.full((batch_size, ), max_seq_len, dtype=np.int32)
+            seq_lens = np.full((batch_size,), max_seq_len, dtype=np.int32)
 
         out = ctc_decode.beam_decode(
             log_probs,

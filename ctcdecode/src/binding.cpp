@@ -13,7 +13,7 @@ using namespace std;
 namespace py = pybind11;
 
 vector<vector<pair<vector<int>, float>>> beam_decode(
-    py::array_t<float> probs,
+    py::array_t<float> log_probs,
     py::array_t<int> seq_lens,
     int beam_size,
     size_t num_processes,
@@ -21,12 +21,12 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
     size_t cutoff_top_n,
     size_t blank_id)
 {
-    const int64_t batch_size = probs.shape(0);
-    const int64_t max_time = probs.shape(1);
-    const int64_t num_classes = probs.shape(2);
+    const int64_t batch_size = log_probs.shape(0);
+    const int64_t max_time = log_probs.shape(1);
+    const int64_t num_classes = log_probs.shape(2);
 
     vector<vector<vector<float>>> inputs;
-    auto prob_a = probs.unchecked<3>();
+    auto log_prob_a = log_probs.unchecked<3>();
     auto seq_len_a = seq_lens.unchecked<1>();
 
     for (int b = 0; b < batch_size; ++b)
@@ -38,8 +38,7 @@ vector<vector<pair<vector<int>, float>>> beam_decode(
         {
             for (int n = 0; n < num_classes; ++n)
             {
-                float val = prob_a(b, t, n);
-                temp[t][n] = val;
+                temp[t][n] = log_prob_a(b, t, n);
             }
         }
         inputs.push_back(temp);
