@@ -1,6 +1,7 @@
-from typing import List, NamedTuple, Optional, Tuple
+from typing import NamedTuple
 
 import numpy as np
+from numpy.typing import NDArray
 
 from ._ext import ctc_decode
 
@@ -13,11 +14,11 @@ class Candidate(NamedTuple):
 class CTCBeamDecoder:
     def __init__(
         self,
-        cutoff_top_n=40,
-        cutoff_prob=1.0,
-        beam_width=100,
-        num_processes=4,
-        blank_id=0,
+        cutoff_top_n: int = 40,
+        cutoff_prob: float = 1.0,
+        beam_width: int = 100,
+        num_processes: int = 4,
+        blank_id: int = 0,
     ):
         self.cutoff_top_n = cutoff_top_n
         self.beam_width = beam_width
@@ -25,7 +26,9 @@ class CTCBeamDecoder:
         self.blank_id = blank_id
         self.cutoff_prob = cutoff_prob
 
-    def decode(self, log_probs, seq_lens=None):
+    def decode(
+        self, log_probs: NDArray[np.float32], seq_lens: NDArray[np.integer] | None = None
+    ) -> list[list[Candidate]]:
         """
         Input: probs, seq_lens numpy array
         """
